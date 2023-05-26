@@ -1,7 +1,8 @@
 import { Helmet } from 'react-helmet-async';
 import { filter } from 'lodash';
 import { sentenceCase } from 'change-case';
-import { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { getDatabase, ref, onValue } from 'firebase/database';
 // @mui
 import {
   Card,
@@ -87,6 +88,28 @@ export default function UserPage() {
   const [filterName, setFilterName] = useState('');
 
   const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [users, setUsers] = useState([]);
+
+  useEffect(() => {
+    const database = getDatabase();
+    const usersRef = ref(database, 'users');
+
+    const fetchUsers = () => {
+      onValue(usersRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          const usersArray = Object.values(data);
+          setUsers(usersArray);
+        }
+      });
+    };
+
+    fetchUsers();
+
+    return () => {
+      // (existing code...)
+    };
+  }, []);
 
   const handleOpenMenu = (event) => {
     setOpen(event.currentTarget);
@@ -140,11 +163,9 @@ export default function UserPage() {
     setFilterName(event.target.value);
   };
 
-  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - USERLIST.length) : 0;
-
-  const filteredUsers = applySortFilter(USERLIST, getComparator(order, orderBy), filterName);
-
+  const filteredUsers = applySortFilter(users, getComparator(order, orderBy), filterName);
   const isNotFound = !filteredUsers.length && !!filterName;
+  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - filteredUsers.length) : 0;
 
   return (
     <>
